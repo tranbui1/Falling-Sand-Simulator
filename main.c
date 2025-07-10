@@ -36,6 +36,7 @@ int error_checking(const char *format, const char *error) {
     return 1;
 }
 
+// Vary the color of sand pixels
 Color varyColor() {
     Color color;
     // Cartoonish darker sand base
@@ -58,35 +59,35 @@ int addNewPoint(Point points[ROWS][COLS], int col, int row, Color color) {
     return 0;
 }
 
+// Simulate gravity on sand particles
 int sandGravity(Point points[ROWS][COLS], int col, int row) {
-    int falling = 1;
     Color color = points[row][col].color;
+
+    // Out of bounds check
+    if ((col + 1 >= COLS) && (col != COLS - 1)) return -1;
+    if ((col - 1 < 0) && (col != 0)) return -1;
+
+    // Prevents pixels from falling down out of bounds
+    if (row + 1 >= ROWS) return -1; 
+
+    // If there is no bottom pixel, move down
+    if (points[row + 1][col].exists == 0) { 
+        points[row][col].exists = 0;
+        addNewPoint(points, col, row + 1, color);
+    }
     
-    while (falling == 1) {
-        // If there is no bottom pixel, move down
-        if (points[row][col + 1].exists == 0) {
-            points[row][col].exists = -1;
-            addNewPoint(points, col + 1, row, color);
-        }
-        
-        // If there is a bottom pixel, try moving downward left
-        else if (points[row + 1][col - 1].exists == 0) {
-            points[row][col].exists = -1;
-            addNewPoint(points, col - 1, row + 1, color);
-        }
-
-        // If there is a pixel downward left, try moving downward right
-        else if (points[row + 1][col + 1].exists == 0) {
-            points[row][col].exists = -1;
-            addNewPoint(points, col - 1, row + 1, color);
-        }
-
-        // Else, stay
-        else {
-            falling = 0;
-        }
+    // If there is a bottom pixel, try moving downward left
+    else if ((points[row + 1][col - 1].exists == 0) && (col != 0)) { 
+        points[row][col].exists = 0;
+        addNewPoint(points, col - 1, row + 1, color);
     }
 
+    // If there is a pixel downward left, try moving downward right
+    else if ((points[row + 1][col + 1].exists == 0) && (col != COLS - 1)) { 
+        points[row][col].exists = 0;
+        addNewPoint(points, col + 1, row + 1, color);
+    }
+    
     return 0;
 }
 
@@ -97,16 +98,18 @@ int drawAllPoints(SDL_Renderer *renderer, Point points[ROWS][COLS]) {
     SDL_RenderClear(renderer);
 
     // Draw all points, checking all points in grid
-    for (int row = 0; row < ROWS; row++) {
-        for (int col = 0; col < COLS; col++) {
+    for (int row = ROWS - 1; row >= 0; row--) {
+        for (int col = COLS - 1; col >= 0; col--) {
             if (points[row][col].exists == 1) { 
                 SDL_SetRenderDrawColor(renderer, 
                                     points[row][col].color.r,  
                                     points[row][col].color.g,  
                                     points[row][col].color.b, 
                                     255);
+                printf("(%d, %d)\n", col, row);
                 int error = SDL_RenderDrawPoint(renderer, col, row); 
                 if (error) error_checking("Encountered error while drawing point on renderer: %s\n", SDL_GetError());
+                sandGravity(points, col, row);
 
             }
         }
@@ -130,7 +133,7 @@ int drawLine(SDL_Renderer *renderer, Point points[ROWS][COLS], int x1, int y1, i
         // Add point at current position
         if (x >= 0 && x < COLS && y >= 0 && y < ROWS) {
             if (points[y][x].exists == 0) { // Only add if point doesn't exist
-                addNewPoint(points, x, y, varyColor()); // x=col, y=row
+                addNewPoint(points, x, y, varyColor()); 
             }
         }
         
